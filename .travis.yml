@@ -1,0 +1,26 @@
+language: rust
+rust:
+    - 1.34.0
+os:
+    - linux
+    - osx
+install:
+    - rustup toolchain install nightly-2019-04-11
+    - rustup component add rustfmt-preview --toolchain nightly-2019-04-11
+    - rustup component add clippy-preview --toolchain nightly-2019-04-11
+before_script:
+    - cargo fetch --verbose
+script:
+    - cargo test --verbose --all
+    - cargo +nightly-2019-04-11 fmt -- --check
+    - cargo +nightly-2019-04-11 clippy --all --all-targets -- -D warnings
+cache:
+    timeout: 1000
+    cargo: true
+    directories:
+        - "$HOME/.rustup"
+before_cache:
+    - rm -rf $HOME/.cargo/registry
+    - rm -rf $TRAVIS_BUILD_DIR/target
+git:
+    depth: 1
