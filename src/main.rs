@@ -40,10 +40,12 @@ use self::error::Error;
 use self::filter::Filter;
 
 fn main() {
+    const VERSION: &'static str = env!("CARGO_PKG_VERSION");
+
     pretty_env_logger::init();
 
     let yaml = load_yaml!("clap.yml");
-    let args = clap::App::from_yaml(yaml).get_matches();
+    let args = clap::App::from_yaml(yaml).version(VERSION).get_matches();
     let bind = value_t_or_exit!(args.value_of("bind"), Ipv4Addr);
     let port = value_t_or_exit!(args, "port", u16);
     let forward = value_t_or_exit!(args, "forward", String).parse().unwrap();
