@@ -48,11 +48,12 @@ fn main() {
     let port = value_t_or_exit!(args, "port", u16);
     let forward = value_t_or_exit!(args, "forward", String).parse().unwrap();
     let allowed_list = args.value_of("allowed_list").unwrap();
-    let allowed_rpcs = BufReader::new(File::open(allowed_list).unwrap())
+    let mut allowed_rpcs = BufReader::new(File::open(allowed_list).unwrap())
         .lines()
         .map(|line| line.map(|line| line.trim().to_string()))
         .collect::<Result<Vec<_>, _>>()
         .unwrap();
+    allowed_rpcs.sort_unstable();
 
     let bind_addr = SocketAddrV4::new(bind, port).into();
 

@@ -20,6 +20,7 @@ use hyper::service::Service;
 use hyper::{Body, Client, Method, Request, Response, StatusCode};
 
 use super::Error;
+use std::cmp::Ordering;
 
 pub struct Filter {
     forward: hyper::Uri,
@@ -81,13 +82,154 @@ impl Service for Filter {
     }
 }
 
+fn contains_bisect(list: &[String], method: &str) -> bool {
+    let len = list.len();
+    if len == 0 {
+        return false;
+    }
+
+    let index = len / 2;
+    match method.cmp(&list[index]) {
+        Ordering::Less => contains_bisect(&list[0..index], method),
+        Ordering::Equal => true,
+        Ordering::Greater => contains_bisect(&list[index + 1..len], method),
+    }
+}
+
 fn filter_allowed_request(buffer: Vec<u8>, allowed_rpcs: &[String]) -> Result<Vec<u8>, Error> {
     let request = serde_json::from_slice::<serde_json::Value>(&buffer)?;
     let method = request.get("method").ok_or(Error::MethodIsNotDefined)?;
     let method = method.as_str().ok_or(Error::MethodIsNotString)?;
-    if allowed_rpcs.iter().any(|allowed| allowed == method) {
+    if contains_bisect(allowed_rpcs, method) {
         Ok(buffer)
     } else {
         Err(Error::NotAllowedMethod(method.to_string()))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn allowed_list() -> Vec<String> {
+        let mut allowed_list: Vec<String> = [
+            "chain_containsTransaction",
+            "chain_executeTransaction",
+            "chain_executeVM",
+            "chain_getAsset",
+            "chain_getAssetSchemeByTracker",
+            "chain_getAssetSchemeByType",
+            "chain_getBalance",
+            "chain_getBestBlockId",
+            "chain_getBestBlockNumber",
+            "chain_getBlockByHash",
+            "chain_getBlockByNumber",
+            "chain_getBlockHash",
+            "chain_getBlockTransactionCountByHash",
+            "chain_getGenesisAccounts",
+            "chain_getMiningReward",
+            "chain_getNetworkId",
+            "chain_getNumberOfShards",
+            "chain_getRegularKey",
+            "chain_getRegularKeyOwner",
+            "chain_getSeq",
+            "chain_getShardIdByHash",
+            "chain_getShardOwners",
+            "chain_getShardRoot",
+            "chain_getShardUsers",
+            "chain_getText",
+            "chain_getTransaction",
+            "chain_getTransactionByTracker",
+            "chain_isAssetSpent",
+            "commitHash",
+            "engine_getBlockReward",
+            "engine_getCoinbase",
+            "engine_getCustomActionData",
+            "engine_getRecommendedConfimation",
+            "mempool_getErrorHint",
+            "mempool_getPendingTransactions",
+            "mempool_getPendingTransactionsCount",
+            "mempool_getTransactionResultsByTracker",
+            "mempool_sendSignedTransaction",
+            "ping",
+            "version",
+        ]
+        .iter()
+        .map(ToString::to_string)
+        .collect();
+
+        allowed_list.sort_unstable();
+        allowed_list
+    }
+
+    #[test]
+    #[allow(clippy::cognitive_complexity)]
+    fn bisect_test() {
+        let allowed_list = allowed_list();
+        assert!(contains_bisect(&allowed_list, "chain_containsTransaction"));
+        assert!(contains_bisect(&allowed_list, "chain_executeTransaction"));
+        assert!(contains_bisect(&allowed_list, "chain_executeVM"));
+        assert!(contains_bisect(&allowed_list, "chain_getAsset"));
+        assert!(contains_bisect(
+            &allowed_list,
+            "chain_getAssetSchemeByTracker"
+        ));
+        assert!(contains_bisect(&allowed_list, "chain_getAssetSchemeByType"));
+        assert!(contains_bisect(&allowed_list, "chain_getBalance"));
+        assert!(contains_bisect(&allowed_list, "chain_getBestBlockId"));
+        assert!(contains_bisect(&allowed_list, "chain_getBestBlockNumber"));
+        assert!(contains_bisect(&allowed_list, "chain_getBlockByHash"));
+        assert!(contains_bisect(&allowed_list, "chain_getBlockByNumber"));
+        assert!(contains_bisect(&allowed_list, "chain_getBlockHash"));
+        assert!(contains_bisect(
+            &allowed_list,
+            "chain_getBlockTransactionCountByHash"
+        ));
+        assert!(contains_bisect(&allowed_list, "chain_getGenesisAccounts"));
+        assert!(contains_bisect(&allowed_list, "chain_getMiningReward"));
+        assert!(contains_bisect(&allowed_list, "chain_getNetworkId"));
+        assert!(contains_bisect(&allowed_list, "chain_getNumberOfShards"));
+        assert!(contains_bisect(&allowed_list, "chain_getRegularKey"));
+        assert!(contains_bisect(&allowed_list, "chain_getRegularKeyOwner"));
+        assert!(contains_bisect(&allowed_list, "chain_getSeq"));
+        assert!(contains_bisect(&allowed_list, "chain_getShardIdByHash"));
+        assert!(contains_bisect(&allowed_list, "chain_getShardOwners"));
+        assert!(contains_bisect(&allowed_list, "chain_getShardRoot"));
+        assert!(contains_bisect(&allowed_list, "chain_getShardUsers"));
+        assert!(contains_bisect(&allowed_list, "chain_getText"));
+        assert!(contains_bisect(&allowed_list, "chain_getTransaction"));
+        assert!(contains_bisect(
+            &allowed_list,
+            "chain_getTransactionByTracker"
+        ));
+        assert!(contains_bisect(&allowed_list, "chain_isAssetSpent"));
+        assert!(contains_bisect(&allowed_list, "commitHash"));
+        assert!(contains_bisect(&allowed_list, "engine_getBlockReward"));
+        assert!(contains_bisect(&allowed_list, "engine_getCoinbase"));
+        assert!(contains_bisect(&allowed_list, "engine_getCustomActionData"));
+        assert!(contains_bisect(
+            &allowed_list,
+            "engine_getRecommendedConfimation"
+        ));
+        assert!(contains_bisect(&allowed_list, "mempool_getErrorHint"));
+        assert!(contains_bisect(
+            &allowed_list,
+            "mempool_getPendingTransactions"
+        ));
+        assert!(contains_bisect(
+            &allowed_list,
+            "mempool_getPendingTransactionsCount"
+        ));
+        assert!(contains_bisect(
+            &allowed_list,
+            "mempool_getTransactionResultsByTracker"
+        ));
+        assert!(contains_bisect(
+            &allowed_list,
+            "mempool_sendSignedTransaction"
+        ));
+        assert!(contains_bisect(&allowed_list, &"ping"));
+        assert!(contains_bisect(&allowed_list, &"version"));
+        assert!(!contains_bisect(&allowed_list, "non exist"));
     }
 }
