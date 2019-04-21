@@ -16,6 +16,7 @@
 
 use futures::stream::Stream;
 use futures::{future, Future};
+use hyper::header::{HeaderValue, ACCESS_CONTROL_ALLOW_ORIGIN};
 use hyper::service::Service;
 use hyper::{Body, Client, Method, Request, Response, StatusCode};
 
@@ -48,6 +49,7 @@ impl Service for Filter {
             return Box::new(future::result(
                 Response::builder()
                     .status(StatusCode::METHOD_NOT_ALLOWED)
+                    .header(ACCESS_CONTROL_ALLOW_ORIGIN, HeaderValue::from_static("*"))
                     .body(Body::from(
                         "Used HTTP Method is not allowed. POST is required",
                     ))
@@ -72,7 +74,15 @@ impl Service for Filter {
                     let mut req = Request::from_parts(header, Body::from(buffer));
                     *req.uri_mut() = forward;
 
-                    Client::new().request(req).map_err(From::from)
+                    Client::new()
+                        .request(req)
+                        .map_err(From::from)
+                        .map(|mut response| {
+                            response
+                                .headers_mut()
+                                .insert(ACCESS_CONTROL_ALLOW_ORIGIN, HeaderValue::from_static("*"));
+                            response
+                        })
                 })
                 .map_err(|err| {
                     info!("Request is filtered: {}", err);
