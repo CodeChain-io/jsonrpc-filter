@@ -40,7 +40,7 @@ use self::error::Error;
 use self::filter::Filter;
 
 fn main() {
-    const VERSION: &'static str = env!("CARGO_PKG_VERSION");
+    const VERSION: &str = env!("CARGO_PKG_VERSION");
 
     pretty_env_logger::init();
 
