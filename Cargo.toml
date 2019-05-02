@@ -1,6 +1,6 @@
 [package]
 name = "jsonrpc-filter"
-version = "0.2.0"
+version = "0.3.0"
 license = "AGPL-3.0"
 authors = ["CodeChain Team <codechain@kodebox.io>"]
 edition = "2018"
