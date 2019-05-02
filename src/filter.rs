@@ -45,13 +45,13 @@ impl Service for Filter {
 
     fn call(&mut self, req: Request<Self::ReqBody>) -> Self::Future {
         let (header, body) = req.into_parts();
-        if Method::POST != header.method {
+        if Method::POST != header.method && Method::OPTIONS != header.method {
             return Box::new(future::result(
                 Response::builder()
                     .status(StatusCode::METHOD_NOT_ALLOWED)
                     .header(ACCESS_CONTROL_ALLOW_ORIGIN, HeaderValue::from_static("*"))
                     .body(Body::from(
-                        "Used HTTP Method is not allowed. POST is required",
+                        "Used HTTP Method is not allowed. POST or OPTIONS is required",
                     ))
                     .map_err(From::from),
             ));
