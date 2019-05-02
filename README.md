@@ -16,3 +16,7 @@ OPTIONS:
         --forward <forward>              The uri to forward the JSONRPC requests [default: http://127.0.0.1:8080]
         --port <port>                    The binding port
 ```
+
+## allowed.txt
+This file is a collection of the allowed RPCs.
+Each line should have precisely one RPC name without any trailing characters.
