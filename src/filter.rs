@@ -16,7 +16,10 @@
 
 use futures::stream::Stream;
 use futures::{future, Future};
-use hyper::header::{HeaderValue, ACCESS_CONTROL_ALLOW_ORIGIN};
+use hyper::header::{
+    HeaderValue, ACCESS_CONTROL_ALLOW_HEADERS, ACCESS_CONTROL_ALLOW_METHODS,
+    ACCESS_CONTROL_ALLOW_ORIGIN,
+};
 use hyper::service::Service;
 use hyper::{Body, Client, Method, Request, Response, StatusCode};
 
@@ -50,9 +53,35 @@ impl Service for Filter {
                 Response::builder()
                     .status(StatusCode::METHOD_NOT_ALLOWED)
                     .header(ACCESS_CONTROL_ALLOW_ORIGIN, HeaderValue::from_static("*"))
+                    .header(
+                        ACCESS_CONTROL_ALLOW_METHODS,
+                        HeaderValue::from_static("POST, OPTIONS"),
+                    )
+                    .header(
+                        ACCESS_CONTROL_ALLOW_HEADERS,
+                        HeaderValue::from_static("Content-Type"),
+                    )
                     .body(Body::from(
                         "Used HTTP Method is not allowed. POST or OPTIONS is required",
                     ))
+                    .map_err(From::from),
+            ));
+        }
+
+        if Method::OPTIONS == header.method {
+            return Box::new(future::result(
+                Response::builder()
+                    .status(StatusCode::OK)
+                    .header(ACCESS_CONTROL_ALLOW_ORIGIN, HeaderValue::from_static("*"))
+                    .header(
+                        ACCESS_CONTROL_ALLOW_METHODS,
+                        HeaderValue::from_static("POST, OPTIONS"),
+                    )
+                    .header(
+                        ACCESS_CONTROL_ALLOW_HEADERS,
+                        HeaderValue::from_static("Content-Type"),
+                    )
+                    .body(Body::from(""))
                     .map_err(From::from),
             ));
         }
