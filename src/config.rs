@@ -39,7 +39,7 @@ impl NewService for Config {
     type ResBody = Body;
     type Error = Error;
     type Service = Filter;
-    type Future = Box<Future<Item = Self::Service, Error = Self::InitError> + Send>;
+    type Future = Box<dyn Future<Item = Self::Service, Error = Self::InitError> + Send>;
     type InitError = Error;
 
     fn new_service(&self) -> Self::Future {
