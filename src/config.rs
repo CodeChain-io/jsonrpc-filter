@@ -19,14 +19,15 @@ use hyper::service::MakeService;
 use hyper::Body;
 
 use super::{Error, Filter};
+use crate::bisect_set::BisectSet;
 
 pub struct Config {
     forward: hyper::Uri,
-    allowed_rpcs: Vec<String>,
+    allowed_rpcs: BisectSet<String>,
 }
 
 impl Config {
-    pub fn new(forward: hyper::Uri, allowed_rpcs: Vec<String>) -> Self {
+    pub fn new(forward: hyper::Uri, allowed_rpcs: BisectSet<String>) -> Self {
         Config {
             forward,
             allowed_rpcs,

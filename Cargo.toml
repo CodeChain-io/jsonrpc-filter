@@ -9,6 +9,10 @@ exclude = [
     "allowed.txt"
 ]
 
+[[bin]]
+name = "jsonrpc-filter"
+test = true
+
 [dependencies]
 clap = {version = "2.33.0", features = ["yaml"]}
 futures = "0.1.26"

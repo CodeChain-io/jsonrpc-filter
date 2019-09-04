@@ -18,10 +18,11 @@
 
 extern crate test;
 
-use std::cmp::Ordering;
 use std::collections::{BTreeSet, HashSet};
 
 use test::{black_box, Bencher};
+
+use jsonrpc_filter::bisect_set::BisectSet;
 
 static ALLOWED_LIST: [&'static str; 40] = [
     "chain_containsTransaction",
@@ -78,22 +79,13 @@ fn contains_btree_set(list: &BTreeSet<String>, method: &str) -> bool {
     list.contains(method)
 }
 
-fn contains_bisect(list: &[String], method: &str) -> bool {
-    let len = list.len();
-    if len == 0 {
-        return false;
-    }
-
-    let index = len / 2;
-    match method.cmp(&list[index]) {
-        Ordering::Less => contains_bisect(&list[0..index], method),
-        Ordering::Equal => true,
-        Ordering::Greater => contains_bisect(&list[index + 1..len], method),
-    }
+fn contains_bisect(list: &BisectSet<String>, method: &str) -> bool {
+    list.contains(method)
 }
 
 mod first_item {
     use super::*;
+    use std::iter::FromIterator;
 
     #[bench]
     fn with_vec_iter(b: &mut Bencher) {
@@ -108,8 +100,7 @@ mod first_item {
 
     #[bench]
     fn with_vec_bisect(b: &mut Bencher) {
-        let mut list: Vec<String> = ALLOWED_LIST.iter().map(ToString::to_string).collect();
-        list.sort_unstable();
+        let list = BisectSet::from_iter(ALLOWED_LIST.iter().map(ToString::to_string));
 
         let method = ALLOWED_LIST.first().unwrap().to_string();
 
@@ -143,6 +134,7 @@ mod first_item {
 
 mod second_item {
     use super::*;
+    use std::iter::FromIterator;
 
     #[bench]
     fn with_vec_iter(b: &mut Bencher) {
@@ -157,8 +149,7 @@ mod second_item {
 
     #[bench]
     fn with_vec_bisect(b: &mut Bencher) {
-        let mut list: Vec<String> = ALLOWED_LIST.iter().map(ToString::to_string).collect();
-        list.sort_unstable();
+        let list = BisectSet::from_iter(ALLOWED_LIST.iter().map(ToString::to_string));
 
         let method = ALLOWED_LIST.get(1).unwrap().to_string();
 
@@ -192,6 +183,7 @@ mod second_item {
 
 mod third_item {
     use super::*;
+    use std::iter::FromIterator;
 
     #[bench]
     fn with_vec_iter(b: &mut Bencher) {
@@ -206,8 +198,7 @@ mod third_item {
 
     #[bench]
     fn with_vec_bisect(b: &mut Bencher) {
-        let mut list: Vec<String> = ALLOWED_LIST.iter().map(ToString::to_string).collect();
-        list.sort_unstable();
+        let list = BisectSet::from_iter(ALLOWED_LIST.iter().map(ToString::to_string));
 
         let method = ALLOWED_LIST.get(2).unwrap().to_string();
 
@@ -241,6 +232,7 @@ mod third_item {
 
 mod q1_item {
     use super::*;
+    use std::iter::FromIterator;
 
     #[bench]
     fn with_vec_iter(b: &mut Bencher) {
@@ -257,8 +249,7 @@ mod q1_item {
 
     #[bench]
     fn with_vec_bisect(b: &mut Bencher) {
-        let mut list: Vec<String> = ALLOWED_LIST.iter().map(ToString::to_string).collect();
-        list.sort_unstable();
+        let list = BisectSet::from_iter(ALLOWED_LIST.iter().map(ToString::to_string));
 
         let method = ALLOWED_LIST
             .get(ALLOWED_LIST.len() / 4)
@@ -299,6 +290,7 @@ mod q1_item {
 
 mod middle_item {
     use super::*;
+    use std::iter::FromIterator;
 
     #[bench]
     fn with_vec_iter(b: &mut Bencher) {
@@ -315,8 +307,7 @@ mod middle_item {
 
     #[bench]
     fn with_vec_bisect(b: &mut Bencher) {
-        let mut list: Vec<String> = ALLOWED_LIST.iter().map(ToString::to_string).collect();
-        list.sort_unstable();
+        let list = BisectSet::from_iter(ALLOWED_LIST.iter().map(ToString::to_string));
 
         let method = ALLOWED_LIST
             .get(ALLOWED_LIST.len() / 2)
@@ -357,6 +348,7 @@ mod middle_item {
 
 mod q3_item {
     use super::*;
+    use std::iter::FromIterator;
 
     #[bench]
     fn with_vec_iter(b: &mut Bencher) {
@@ -373,8 +365,7 @@ mod q3_item {
 
     #[bench]
     fn with_vec_bisect(b: &mut Bencher) {
-        let mut list: Vec<String> = ALLOWED_LIST.iter().map(ToString::to_string).collect();
-        list.sort_unstable();
+        let list = BisectSet::from_iter(ALLOWED_LIST.iter().map(ToString::to_string));
 
         let method = ALLOWED_LIST
             .get(3 * ALLOWED_LIST.len() / 4)
@@ -415,6 +406,7 @@ mod q3_item {
 
 mod last_item {
     use super::*;
+    use std::iter::FromIterator;
 
     #[bench]
     fn with_vec_iter(b: &mut Bencher) {
@@ -428,8 +420,7 @@ mod last_item {
 
     #[bench]
     fn with_vec_bisect(b: &mut Bencher) {
-        let mut list: Vec<String> = ALLOWED_LIST.iter().map(ToString::to_string).collect();
-        list.sort_unstable();
+        let list = BisectSet::from_iter(ALLOWED_LIST.iter().map(ToString::to_string));
 
         let method = ALLOWED_LIST.last().unwrap().to_string();
 
@@ -461,6 +452,7 @@ mod last_item {
 
 mod non_exist {
     use super::*;
+    use std::iter::FromIterator;
 
     #[bench]
     fn with_vec_iter(b: &mut Bencher) {
@@ -474,8 +466,7 @@ mod non_exist {
 
     #[bench]
     fn with_vec_bisect(b: &mut Bencher) {
-        let mut list: Vec<String> = ALLOWED_LIST.iter().map(ToString::to_string).collect();
-        list.sort_unstable();
+        let list = BisectSet::from_iter(ALLOWED_LIST.iter().map(ToString::to_string));
 
         let method = "chain_getNonExist".to_string();
 

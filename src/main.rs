@@ -24,6 +24,7 @@ extern crate pretty_env_logger;
 extern crate serde;
 extern crate serde_json;
 
+mod bisect_set;
 mod config;
 mod error;
 mod filter;
@@ -35,9 +36,11 @@ use std::net::{Ipv4Addr, SocketAddrV4};
 use futures::Future;
 use hyper::Server;
 
+use self::bisect_set::BisectSet;
 use self::config::Config;
 use self::error::Error;
 use self::filter::Filter;
+use std::iter::FromIterator;
 
 fn main() {
     const VERSION: &str = env!("CARGO_PKG_VERSION");
@@ -50,12 +53,12 @@ fn main() {
     let port = value_t_or_exit!(args, "port", u16);
     let forward = value_t_or_exit!(args, "forward", String).parse().unwrap();
     let allowed_list = args.value_of("allowed_list").unwrap();
-    let mut allowed_rpcs = BufReader::new(File::open(allowed_list).unwrap())
+    let allowed_rpcs = BufReader::new(File::open(allowed_list).unwrap())
         .lines()
         .map(|line| line.map(|line| line.trim().to_string()))
         .collect::<Result<Vec<_>, _>>()
+        .map(BisectSet::from_iter)
         .unwrap();
-    allowed_rpcs.sort_unstable();
 
     let bind_addr = SocketAddrV4::new(bind, port).into();
 
