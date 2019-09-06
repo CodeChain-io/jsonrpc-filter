@@ -15,7 +15,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use futures::{future, Future};
-use hyper::service::NewService;
+use hyper::service::MakeService;
 use hyper::Body;
 
 use super::{Error, Filter};
@@ -34,15 +34,15 @@ impl Config {
     }
 }
 
-impl NewService for Config {
+impl<Ctx> MakeService<Ctx> for Config {
     type ReqBody = Body;
     type ResBody = Body;
     type Error = Error;
     type Service = Filter;
-    type Future = Box<dyn Future<Item = Self::Service, Error = Self::InitError> + Send>;
-    type InitError = Error;
+    type Future = Box<dyn Future<Item = Self::Service, Error = Self::MakeError> + Send>;
+    type MakeError = Error;
 
-    fn new_service(&self) -> Self::Future {
+    fn make_service(&mut self, _ctx: Ctx) -> Self::Future {
         Box::new(future::ok(Filter::new(
             self.forward.clone(),
             self.allowed_rpcs.clone(),
