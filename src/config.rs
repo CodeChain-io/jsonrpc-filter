@@ -44,9 +44,6 @@ impl<Ctx> MakeService<Ctx> for Config {
     type MakeError = Error;
 
     fn make_service(&mut self, _ctx: Ctx) -> Self::Future {
-        Box::new(future::ok(Filter::new(
-            self.forward.clone(),
-            self.allowed_rpcs.clone(),
-        )))
+        Box::new(future::ok(Filter::new(self.forward.clone(), self.allowed_rpcs.clone())))
     }
 }

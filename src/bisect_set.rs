@@ -27,7 +27,9 @@ impl<T: Ord> FromIterator<T> for BisectSet<T> {
     fn from_iter<I: IntoIterator<Item = T>>(iter: I) -> Self {
         let mut items: Vec<_> = iter.into_iter().collect();
         items.sort_unstable();
-        BisectSet { items }
+        BisectSet {
+            items,
+        }
     }
 }
 
@@ -35,8 +37,7 @@ impl<T: std::cmp::Ord> BisectSet<T> {
     pub fn contains<Q>(&self, target: &Q) -> bool
     where
         T: Borrow<Q>,
-        Q: Ord + ?Sized,
-    {
+        Q: Ord + ?Sized, {
         let mut left = 0;
         let mut right = self.items.len();
         while left != right {

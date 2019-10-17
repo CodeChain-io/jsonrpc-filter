@@ -63,9 +63,7 @@ fn main() {
     let bind_addr = SocketAddrV4::new(bind, port).into();
 
     let config = Config::new(forward, allowed_rpcs);
-    let server = Server::bind(&bind_addr)
-        .serve(config)
-        .map_err(|e| println!("{:?}", e));
+    let server = Server::bind(&bind_addr).serve(config).map_err(|e| println!("{:?}", e));
 
     hyper::rt::run(server);
 }

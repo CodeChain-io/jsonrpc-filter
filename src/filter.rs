@@ -17,8 +17,7 @@
 use futures::stream::Stream;
 use futures::{future, Future};
 use hyper::header::{
-    HeaderValue, ACCESS_CONTROL_ALLOW_HEADERS, ACCESS_CONTROL_ALLOW_METHODS,
-    ACCESS_CONTROL_ALLOW_ORIGIN,
+    HeaderValue, ACCESS_CONTROL_ALLOW_HEADERS, ACCESS_CONTROL_ALLOW_METHODS, ACCESS_CONTROL_ALLOW_ORIGIN,
 };
 use hyper::service::Service;
 use hyper::{Body, Client, Method, Request, Response, StatusCode};
@@ -53,19 +52,11 @@ impl Service for Filter {
                 Response::builder()
                     .status(StatusCode::METHOD_NOT_ALLOWED)
                     .header(ACCESS_CONTROL_ALLOW_ORIGIN, HeaderValue::from_static("*"))
-                    .header(
-                        ACCESS_CONTROL_ALLOW_METHODS,
-                        HeaderValue::from_static("POST, OPTIONS"),
-                    )
-                    .header(
-                        ACCESS_CONTROL_ALLOW_HEADERS,
-                        HeaderValue::from_static("Content-Type"),
-                    )
-                    .body(Body::from(
-                        "Used HTTP Method is not allowed. POST or OPTIONS is required",
-                    ))
+                    .header(ACCESS_CONTROL_ALLOW_METHODS, HeaderValue::from_static("POST, OPTIONS"))
+                    .header(ACCESS_CONTROL_ALLOW_HEADERS, HeaderValue::from_static("Content-Type"))
+                    .body(Body::from("Used HTTP Method is not allowed. POST or OPTIONS is required"))
                     .map_err(From::from),
-            ));
+            ))
         }
 
         if Method::OPTIONS == header.method {
@@ -73,17 +64,11 @@ impl Service for Filter {
                 Response::builder()
                     .status(StatusCode::OK)
                     .header(ACCESS_CONTROL_ALLOW_ORIGIN, HeaderValue::from_static("*"))
-                    .header(
-                        ACCESS_CONTROL_ALLOW_METHODS,
-                        HeaderValue::from_static("POST, OPTIONS"),
-                    )
-                    .header(
-                        ACCESS_CONTROL_ALLOW_HEADERS,
-                        HeaderValue::from_static("Content-Type"),
-                    )
+                    .header(ACCESS_CONTROL_ALLOW_METHODS, HeaderValue::from_static("POST, OPTIONS"))
+                    .header(ACCESS_CONTROL_ALLOW_HEADERS, HeaderValue::from_static("Content-Type"))
                     .body(Body::from(""))
                     .map_err(From::from),
-            ));
+            ))
         }
 
         let forward = self.forward.clone();
@@ -103,15 +88,10 @@ impl Service for Filter {
                     let mut req = Request::from_parts(header, Body::from(buffer));
                     *req.uri_mut() = forward;
 
-                    Client::new()
-                        .request(req)
-                        .map_err(From::from)
-                        .map(|mut response| {
-                            response
-                                .headers_mut()
-                                .insert(ACCESS_CONTROL_ALLOW_ORIGIN, HeaderValue::from_static("*"));
-                            response
-                        })
+                    Client::new().request(req).map_err(From::from).map(|mut response| {
+                        response.headers_mut().insert(ACCESS_CONTROL_ALLOW_ORIGIN, HeaderValue::from_static("*"));
+                        response
+                    })
                 })
                 .map_err(|err| {
                     info!("Request is filtered: {}", err);
@@ -121,10 +101,7 @@ impl Service for Filter {
     }
 }
 
-fn filter_allowed_request(
-    buffer: Vec<u8>,
-    allowed_rpcs: &BisectSet<String>,
-) -> Result<Vec<u8>, Error> {
+fn filter_allowed_request(buffer: Vec<u8>, allowed_rpcs: &BisectSet<String>) -> Result<Vec<u8>, Error> {
     let request = serde_json::from_slice::<serde_json::Value>(&buffer)?;
     let method = request.get("method").ok_or(Error::MethodIsNotDefined)?;
     let method = method.as_str().ok_or(Error::MethodIsNotString)?;
