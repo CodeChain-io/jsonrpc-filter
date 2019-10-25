@@ -1,0 +1,37 @@
+on: [push, pull_request]
+
+name: Actions
+
+jobs:
+  test:
+    name: test
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [macOS-latest, ubuntu-latest]
+    steps:
+      - uses: actions/checkout@v1
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: 1.38.0
+          override: true
+      - run: cargo fetch --verbose
+      - run: cargo build
+      - run: cargo test --verbose --all
+        env:
+          RUST_BACKTRACE: 1
+      - run: ./e2e_test.sh
+        working-directory: test
+
+  lint:
+    name: lints
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v1
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: nightly-2019-10-13
+          override: true
+          components: rustfmt, clippy
+      - run: cargo fmt -- --check
+      - run: cargo clippy --all --all-targets -- -D warnings
