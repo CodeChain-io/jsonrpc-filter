@@ -28,13 +28,15 @@ use crate::bisect_set::BisectSet;
 pub struct Filter {
     forward: hyper::Uri,
     allowed_rpcs: BisectSet<String>,
+    seq: u64,
 }
 
 impl Filter {
-    pub fn new(forward: hyper::Uri, allowed_rpcs: BisectSet<String>) -> Self {
+    pub fn new(forward: hyper::Uri, allowed_rpcs: BisectSet<String>, seq: u64) -> Self {
         Filter {
             forward,
             allowed_rpcs,
+            seq,
         }
     }
 }
@@ -46,8 +48,10 @@ impl Service for Filter {
     type Future = Box<dyn Future<Item = Response<Self::ResBody>, Error = Self::Error> + Send>;
 
     fn call(&mut self, req: Request<Self::ReqBody>) -> Self::Future {
+        let seq = self.seq;
         let (header, body) = req.into_parts();
         if Method::POST != header.method && Method::OPTIONS != header.method {
+            info!("seq: {}, Invalid method: {}", seq, header.method);
             return Box::new(future::result(
                 Response::builder()
                     .status(StatusCode::METHOD_NOT_ALLOWED)
@@ -60,6 +64,7 @@ impl Service for Filter {
         }
 
         if Method::OPTIONS == header.method {
+            info!("seq: {}, CORS preflight", seq);
             return Box::new(future::result(
                 Response::builder()
                     .status(StatusCode::OK)
@@ -74,40 +79,52 @@ impl Service for Filter {
         let forward = self.forward.clone();
         let allowed_rpcs = self.allowed_rpcs.clone();
         Box::new(
-            body.collect()
-                .map(|body| {
-                    let mut buffer: Vec<u8> = Vec::new();
-                    for i in body {
-                        buffer.append(&mut i.to_vec());
-                    }
-                    buffer
-                })
+            collect_body(body)
                 .map_err(From::from)
-                .and_then(move |buffer| filter_allowed_request(buffer, &allowed_rpcs))
-                .and_then(|buffer| {
+                .inspect(move |buffer| trace!("seq: {}, bytes: {}", seq, String::from_utf8_lossy(&buffer)))
+                .and_then(move |buffer| filter_allowed_request(buffer, &allowed_rpcs, seq))
+                .and_then(move |buffer| {
                     let mut req = Request::from_parts(header, Body::from(buffer));
-                    *req.uri_mut() = forward;
+                    *req.uri_mut() = forward.clone();
 
-                    Client::new().request(req).map_err(From::from).map(|mut response| {
+                    Client::new().request(req).map_err(Error::from).and_then(move |mut response| {
                         response.headers_mut().insert(ACCESS_CONTROL_ALLOW_ORIGIN, HeaderValue::from_static("*"));
-                        response
+                        let (parts, body) = response.into_parts();
+                        collect_body(body)
+                            .map_err(From::from)
+                            .inspect(move |buffer| {
+                                trace!("seq: {}, forward, bytes: {}", seq, String::from_utf8_lossy(&buffer))
+                            })
+                            .map(|buffer| Response::from_parts(parts, Body::from(buffer)))
                     })
                 })
-                .map_err(|err| {
-                    info!("Request is filtered: {}", err);
+                .map_err(move |err| {
+                    error!("seq: {}, forward, error: {}", seq, err);
                     err
                 }),
         )
     }
 }
 
-fn filter_allowed_request(buffer: Vec<u8>, allowed_rpcs: &BisectSet<String>) -> Result<Vec<u8>, Error> {
+fn filter_allowed_request(buffer: Vec<u8>, allowed_rpcs: &BisectSet<String>, seq: u64) -> Result<Vec<u8>, Error> {
     let request = serde_json::from_slice::<serde_json::Value>(&buffer)?;
     let method = request.get("method").ok_or(Error::MethodIsNotDefined)?;
     let method = method.as_str().ok_or(Error::MethodIsNotString)?;
+    debug!("seq: {}, method: {}", seq, method);
     if allowed_rpcs.contains(method) {
         Ok(buffer)
     } else {
+        info!("seq: {}, blocked", seq);
         Err(Error::NotAllowedMethod(method.to_string()))
     }
+}
+
+fn collect_body(body: Body) -> impl Future<Item = Vec<u8>, Error = hyper::Error> {
+    body.collect().map(|body| {
+        let mut buffer: Vec<u8> = Vec::new();
+        for i in body {
+            buffer.append(&mut i.to_vec());
+        }
+        buffer
+    })
 }

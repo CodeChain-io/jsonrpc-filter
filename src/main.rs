@@ -51,7 +51,7 @@ fn main() {
     let args = clap::App::from_yaml(yaml).version(VERSION).get_matches();
     let bind = value_t_or_exit!(args.value_of("bind"), Ipv4Addr);
     let port = value_t_or_exit!(args, "port", u16);
-    let forward = value_t_or_exit!(args, "forward", String).parse().unwrap();
+    let forward: hyper::Uri = value_t_or_exit!(args, "forward", String).parse().unwrap();
     let allowed_list = args.value_of("allowed_list").unwrap();
     let allowed_rpcs = BufReader::new(File::open(allowed_list).unwrap())
         .lines()
@@ -62,8 +62,9 @@ fn main() {
 
     let bind_addr = SocketAddrV4::new(bind, port).into();
 
-    let config = Config::new(forward, allowed_rpcs);
+    let config = Config::new(forward.clone(), allowed_rpcs);
     let server = Server::bind(&bind_addr).serve(config).map_err(|e| println!("{:?}", e));
 
+    info!("Start jsonrpc-filter. bind: {}, forward: {}", bind_addr, forward);
     hyper::rt::run(server);
 }

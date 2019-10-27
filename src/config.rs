@@ -14,6 +14,8 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+use std::sync::atomic::{AtomicU64, Ordering};
+
 use futures::{future, Future};
 use hyper::service::MakeService;
 use hyper::Body;
@@ -24,6 +26,7 @@ use crate::bisect_set::BisectSet;
 pub struct Config {
     forward: hyper::Uri,
     allowed_rpcs: BisectSet<String>,
+    counter: AtomicU64,
 }
 
 impl Config {
@@ -31,6 +34,7 @@ impl Config {
         Config {
             forward,
             allowed_rpcs,
+            counter: AtomicU64::new(0),
         }
     }
 }
@@ -44,6 +48,7 @@ impl<Ctx> MakeService<Ctx> for Config {
     type MakeError = Error;
 
     fn make_service(&mut self, _ctx: Ctx) -> Self::Future {
-        Box::new(future::ok(Filter::new(self.forward.clone(), self.allowed_rpcs.clone())))
+        let seq = self.counter.fetch_add(1, Ordering::SeqCst);
+        Box::new(future::ok(Filter::new(self.forward.clone(), self.allowed_rpcs.clone(), seq)))
     }
 }
