@@ -14,14 +14,14 @@ function tag {
   done
 }
 
-python3 -u test-server.py 127.0.0.1 "$SERVER_PORT" 2>&1 | tag "[FILTER]" &
+python3 -u test-server.py 127.0.0.1 "$SERVER_PORT" 2>&1 | tag "[SERVER]" &
 
 RUST_BACKTRACE=1 \
 RUST_LOG='jsonrpc_filter=trace' \
 ../target/debug/jsonrpc-filter \
   --allowed-list ./test_allowed.txt \
   --bind 127.0.0.1 --port $FILTER_PORT \
-  --forward "http://127.0.0.1:$SERVER_PORT" 2>&1 | tag "[SERVER]" &
+  --forward "http://127.0.0.1:$SERVER_PORT" 2>&1 | tag "[FILTER]" &
 
 function finish {
   set +e
