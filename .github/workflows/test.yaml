@@ -11,9 +11,12 @@ jobs:
         os: [macOS-latest, ubuntu-latest]
     steps:
       - uses: actions/checkout@v1
+        with:
+          fetch-depth: 1
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: 1.38.0
+          profile: minimal
           override: true
       - run: cargo fetch --verbose
       - run: cargo build
@@ -28,10 +31,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v1
+        with:
+          fetch-depth: 1
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: nightly-2019-10-13
           override: true
+          profile: minimal
           components: rustfmt, clippy
       - run: cargo fmt -- --check
       - run: cargo clippy --all --all-targets -- -D warnings
