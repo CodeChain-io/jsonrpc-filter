@@ -14,10 +14,11 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+use std::future::Future;
 use std::sync::Arc;
+use std::task::{Context, Poll};
 
-use futures::stream::Stream;
-use futures::{future, Future};
+use futures::{future, TryFutureExt, TryStreamExt};
 use hyper::header::{
     HeaderValue, ACCESS_CONTROL_ALLOW_HEADERS, ACCESS_CONTROL_ALLOW_METHODS, ACCESS_CONTROL_ALLOW_ORIGIN,
 };
@@ -42,18 +43,21 @@ impl Filter {
     }
 }
 
-impl Service for Filter {
-    type ReqBody = Body;
-    type ResBody = Body;
+impl Service<Request<Body>> for Filter {
+    type Response = Response<Body>;
     type Error = Error;
-    type Future = Box<dyn Future<Item = Response<Self::ResBody>, Error = Self::Error> + Send>;
+    type Future = Box<dyn Future<Output = Result<Self::Response, Self::Error>> + Send + Unpin>;
 
-    fn call(&mut self, req: Request<Self::ReqBody>) -> Self::Future {
+    fn poll_ready(&mut self, _cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
+        Poll::Ready(Ok(()))
+    }
+
+    fn call(&mut self, req: Request<Body>) -> Self::Future {
         let seq = self.seq;
         let (header, body) = req.into_parts();
         if Method::POST != header.method && Method::OPTIONS != header.method {
             info!("seq: {}, Invalid method: {}", seq, header.method);
-            return Box::new(future::result(
+            return Box::new(future::ready(
                 Response::builder()
                     .status(StatusCode::METHOD_NOT_ALLOWED)
                     .header(ACCESS_CONTROL_ALLOW_ORIGIN, HeaderValue::from_static("*"))
@@ -66,7 +70,7 @@ impl Service for Filter {
 
         if Method::OPTIONS == header.method {
             info!("seq: {}, CORS preflight", seq);
-            return Box::new(future::result(
+            return Box::new(future::ready(
                 Response::builder()
                     .status(StatusCode::OK)
                     .header(ACCESS_CONTROL_ALLOW_ORIGIN, HeaderValue::from_static("*"))
@@ -79,11 +83,12 @@ impl Service for Filter {
 
         let forward = self.config.forward.clone();
         let allowed_rpcs = self.config.allowed_rpcs.clone();
-        Box::new(
+
+        Box::new({
             collect_body(body)
                 .map_err(From::from)
-                .inspect(move |buffer| trace!("seq: {}, bytes: {}", seq, String::from_utf8_lossy(&buffer)))
-                .and_then(move |buffer| filter_allowed_request(buffer, &allowed_rpcs, seq))
+                .inspect_ok(move |buffer| trace!("seq: {}, bytes: {}", seq, String::from_utf8_lossy(&buffer)))
+                .and_then(move |buffer| future::ready(filter_allowed_request(buffer, &allowed_rpcs, seq)))
                 .and_then(move |buffer| {
                     let mut req = Request::from_parts(header, Body::from(buffer));
                     *req.uri_mut() = forward.clone();
@@ -93,17 +98,17 @@ impl Service for Filter {
                         let (parts, body) = response.into_parts();
                         collect_body(body)
                             .map_err(From::from)
-                            .inspect(move |buffer| {
+                            .inspect_ok(move |buffer| {
                                 trace!("seq: {}, forward, bytes: {}", seq, String::from_utf8_lossy(&buffer))
                             })
-                            .map(|buffer| Response::from_parts(parts, Body::from(buffer)))
+                            .map_ok(|buffer| Response::from_parts(parts, Body::from(buffer)))
                     })
                 })
                 .map_err(move |err| {
                     error!("seq: {}, forward, error: {}", seq, err);
                     err
-                }),
-        )
+                })
+        })
     }
 }
 
@@ -120,12 +125,9 @@ fn filter_allowed_request(buffer: Vec<u8>, allowed_rpcs: &BisectSet<String>, seq
     }
 }
 
-fn collect_body(body: Body) -> impl Future<Item = Vec<u8>, Error = hyper::Error> {
-    body.collect().map(|body| {
-        let mut buffer: Vec<u8> = Vec::new();
-        for i in body {
-            buffer.append(&mut i.to_vec());
-        }
-        buffer
+fn collect_body(body: Body) -> impl Future<Output = Result<Vec<u8>, hyper::Error>> {
+    body.try_fold(Vec::new(), |mut x, y| {
+        x.append(&mut y.to_vec());
+        future::ok(x)
     })
 }

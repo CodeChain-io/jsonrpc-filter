@@ -16,10 +16,10 @@
 
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
+use std::task::{Context, Poll};
 
-use futures::{future, Future};
-use hyper::service::MakeService;
-use hyper::Body;
+use futures::future;
+use hyper::service::Service;
 
 use super::{Error, Filter};
 use crate::bisect_set::BisectSet;
@@ -52,17 +52,18 @@ impl ServiceMaker {
     }
 }
 
-impl<Ctx> MakeService<Ctx> for ServiceMaker {
-    type ReqBody = Body;
-    type ResBody = Body;
+impl<T> Service<T> for ServiceMaker {
+    type Response = Filter;
     type Error = Error;
-    type Service = Filter;
-    type Future = Box<dyn Future<Item = Self::Service, Error = Self::MakeError> + Send>;
-    type MakeError = Error;
+    type Future = future::Ready<Result<Self::Response, Self::Error>>;
 
-    fn make_service(&mut self, _ctx: Ctx) -> Self::Future {
+    fn poll_ready(&mut self, _cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
+        Poll::Ready(Ok(()))
+    }
+
+    fn call(&mut self, _: T) -> Self::Future {
         let config = Arc::clone(&self.config);
         let seq = self.counter.fetch_add(1, Ordering::SeqCst);
-        Box::new(future::ok(Filter::new(config, seq)))
+        future::ok(Filter::new(config, seq))
     }
 }

@@ -35,7 +35,8 @@ use std::iter::FromIterator;
 use std::net::{Ipv4Addr, SocketAddrV4};
 use std::sync::Arc;
 
-use futures::Future;
+use futures::executor::block_on;
+use futures::TryFutureExt;
 use hyper::Server;
 
 use self::bisect_set::BisectSet;
@@ -44,7 +45,8 @@ use self::error::Error;
 use self::filter::Filter;
 use crate::config::ServiceMaker;
 
-fn main() {
+#[tokio::main]
+async fn main() {
     const VERSION: &str = env!("CARGO_PKG_VERSION");
 
     pretty_env_logger::init();
@@ -68,5 +70,5 @@ fn main() {
     let server = Server::bind(&bind_addr).serve(ServiceMaker::new(config)).map_err(|e| println!("{:?}", e));
 
     info!("Start jsonrpc-filter. bind: {}, forward: {}", bind_addr, forward);
-    hyper::rt::run(server);
+    server.await.unwrap();
 }
