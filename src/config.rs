@@ -15,6 +15,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::Arc;
 
 use futures::{future, Future};
 use hyper::service::MakeService;
@@ -24,9 +25,8 @@ use super::{Error, Filter};
 use crate::bisect_set::BisectSet;
 
 pub struct Config {
-    forward: hyper::Uri,
-    allowed_rpcs: BisectSet<String>,
-    counter: AtomicU64,
+    pub forward: hyper::Uri,
+    pub allowed_rpcs: BisectSet<String>,
 }
 
 impl Config {
@@ -34,12 +34,25 @@ impl Config {
         Config {
             forward,
             allowed_rpcs,
+        }
+    }
+}
+
+pub struct ServiceMaker {
+    config: Arc<Config>,
+    counter: AtomicU64,
+}
+
+impl ServiceMaker {
+    pub fn new(config: Arc<Config>) -> Self {
+        Self {
+            config,
             counter: AtomicU64::new(0),
         }
     }
 }
 
-impl<Ctx> MakeService<Ctx> for Config {
+impl<Ctx> MakeService<Ctx> for ServiceMaker {
     type ReqBody = Body;
     type ResBody = Body;
     type Error = Error;
@@ -48,7 +61,8 @@ impl<Ctx> MakeService<Ctx> for Config {
     type MakeError = Error;
 
     fn make_service(&mut self, _ctx: Ctx) -> Self::Future {
+        let config = Arc::clone(&self.config);
         let seq = self.counter.fetch_add(1, Ordering::SeqCst);
-        Box::new(future::ok(Filter::new(self.forward.clone(), self.allowed_rpcs.clone(), seq)))
+        Box::new(future::ok(Filter::new(config, seq)))
     }
 }

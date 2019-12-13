@@ -14,6 +14,8 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+use std::sync::Arc;
+
 use futures::stream::Stream;
 use futures::{future, Future};
 use hyper::header::{
@@ -24,18 +26,17 @@ use hyper::{Body, Client, Method, Request, Response, StatusCode};
 
 use super::Error;
 use crate::bisect_set::BisectSet;
+use crate::config::Config;
 
 pub struct Filter {
-    forward: hyper::Uri,
-    allowed_rpcs: BisectSet<String>,
+    config: Arc<Config>,
     seq: u64,
 }
 
 impl Filter {
-    pub fn new(forward: hyper::Uri, allowed_rpcs: BisectSet<String>, seq: u64) -> Self {
+    pub fn new(config: Arc<Config>, seq: u64) -> Self {
         Filter {
-            forward,
-            allowed_rpcs,
+            config,
             seq,
         }
     }
@@ -76,8 +77,8 @@ impl Service for Filter {
             ))
         }
 
-        let forward = self.forward.clone();
-        let allowed_rpcs = self.allowed_rpcs.clone();
+        let forward = self.config.forward.clone();
+        let allowed_rpcs = self.config.allowed_rpcs.clone();
         Box::new(
             collect_body(body)
                 .map_err(From::from)

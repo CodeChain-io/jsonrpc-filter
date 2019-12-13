@@ -31,7 +31,9 @@ mod filter;
 
 use std::fs::File;
 use std::io::{BufRead, BufReader};
+use std::iter::FromIterator;
 use std::net::{Ipv4Addr, SocketAddrV4};
+use std::sync::Arc;
 
 use futures::Future;
 use hyper::Server;
@@ -40,7 +42,7 @@ use self::bisect_set::BisectSet;
 use self::config::Config;
 use self::error::Error;
 use self::filter::Filter;
-use std::iter::FromIterator;
+use crate::config::ServiceMaker;
 
 fn main() {
     const VERSION: &str = env!("CARGO_PKG_VERSION");
@@ -62,8 +64,8 @@ fn main() {
 
     let bind_addr = SocketAddrV4::new(bind, port).into();
 
-    let config = Config::new(forward.clone(), allowed_rpcs);
-    let server = Server::bind(&bind_addr).serve(config).map_err(|e| println!("{:?}", e));
+    let config = Arc::new(Config::new(forward.clone(), allowed_rpcs));
+    let server = Server::bind(&bind_addr).serve(ServiceMaker::new(config)).map_err(|e| println!("{:?}", e));
 
     info!("Start jsonrpc-filter. bind: {}, forward: {}", bind_addr, forward);
     hyper::rt::run(server);
