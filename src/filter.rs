@@ -18,7 +18,7 @@ use std::future::Future;
 use std::sync::Arc;
 use std::task::{Context, Poll};
 
-use futures::{future, TryFutureExt, TryStreamExt};
+use futures::TryStreamExt;
 use hyper::header::{
     HeaderValue, ACCESS_CONTROL_ALLOW_HEADERS, ACCESS_CONTROL_ALLOW_METHODS, ACCESS_CONTROL_ALLOW_ORIGIN,
 };
@@ -28,6 +28,7 @@ use hyper::{Body, Client, Method, Request, Response, StatusCode};
 use super::Error;
 use crate::bisect_set::BisectSet;
 use crate::config::Config;
+use std::pin::Pin;
 
 pub struct Filter {
     config: Arc<Config>,
@@ -43,91 +44,72 @@ impl Filter {
     }
 }
 
+type DynFuture<Output> = Pin<Box<dyn Future<Output = Output> + Send>>;
+
 impl Service<Request<Body>> for Filter {
     type Response = Response<Body>;
     type Error = Error;
-    type Future = Box<dyn Future<Output = Result<Self::Response, Self::Error>> + Send + Unpin>;
+    type Future = DynFuture<Result<Self::Response, Self::Error>>;
 
     fn poll_ready(&mut self, _cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
         Poll::Ready(Ok(()))
     }
 
     fn call(&mut self, req: Request<Body>) -> Self::Future {
-        let seq = self.seq;
-        let (header, body) = req.into_parts();
-        if Method::POST != header.method && Method::OPTIONS != header.method {
-            info!("seq: {}, Invalid method: {}", seq, header.method);
-            return Box::new(future::ready(
-                Response::builder()
+        async fn run(config: Arc<Config>, seq: u64, req: Request<Body>) -> Result<Response<Body>, Error> {
+            let (header, body) = req.into_parts();
+            if Method::POST != header.method && Method::OPTIONS != header.method {
+                info!("seq: {}, Invalid method: {}", seq, header.method);
+                return Ok(Response::builder()
                     .status(StatusCode::METHOD_NOT_ALLOWED)
                     .header(ACCESS_CONTROL_ALLOW_ORIGIN, HeaderValue::from_static("*"))
                     .header(ACCESS_CONTROL_ALLOW_METHODS, HeaderValue::from_static("POST, OPTIONS"))
                     .header(ACCESS_CONTROL_ALLOW_HEADERS, HeaderValue::from_static("Content-Type"))
-                    .body(Body::from("Used HTTP Method is not allowed. POST or OPTIONS is required"))
-                    .map_err(From::from),
-            ))
-        }
+                    .body(Body::from("Used HTTP Method is not allowed. POST or OPTIONS is required"))?)
+            }
 
-        if Method::OPTIONS == header.method {
-            info!("seq: {}, CORS preflight", seq);
-            return Box::new(future::ready(
-                Response::builder()
+            if Method::OPTIONS == header.method {
+                info!("seq: {}, CORS preflight", seq);
+                return Ok(Response::builder()
                     .status(StatusCode::OK)
                     .header(ACCESS_CONTROL_ALLOW_ORIGIN, HeaderValue::from_static("*"))
                     .header(ACCESS_CONTROL_ALLOW_METHODS, HeaderValue::from_static("POST, OPTIONS"))
                     .header(ACCESS_CONTROL_ALLOW_HEADERS, HeaderValue::from_static("Content-Type"))
-                    .body(Body::from(""))
-                    .map_err(From::from),
-            ))
+                    .body(Body::from(""))?)
+            }
+
+            let buffer = collect_body(body).await?;
+            trace!("seq: {}, bytes: {}", seq, String::from_utf8_lossy(&buffer));
+            filter_allowed_request(&buffer, &config.allowed_rpcs, seq)?;
+
+            let mut req = Request::from_parts(header, Body::from(buffer));
+            *req.uri_mut() = config.forward.clone();
+
+            let mut response = Client::new().request(req).await?;
+            response.headers_mut().insert(ACCESS_CONTROL_ALLOW_ORIGIN, HeaderValue::from_static("*"));
+            let (parts, body) = response.into_parts();
+            let buffer = collect_body(body).await?;
+            trace!("seq: {}, forward, bytes: {}", seq, String::from_utf8_lossy(&buffer));
+            Ok(Response::from_parts(parts, Body::from(buffer)))
         }
 
-        let forward = self.config.forward.clone();
-        let allowed_rpcs = self.config.allowed_rpcs.clone();
-
-        Box::new({
-            collect_body(body)
-                .map_err(From::from)
-                .inspect_ok(move |buffer| trace!("seq: {}, bytes: {}", seq, String::from_utf8_lossy(&buffer)))
-                .and_then(move |buffer| future::ready(filter_allowed_request(buffer, &allowed_rpcs, seq)))
-                .and_then(move |buffer| {
-                    let mut req = Request::from_parts(header, Body::from(buffer));
-                    *req.uri_mut() = forward.clone();
-
-                    Client::new().request(req).map_err(Error::from).and_then(move |mut response| {
-                        response.headers_mut().insert(ACCESS_CONTROL_ALLOW_ORIGIN, HeaderValue::from_static("*"));
-                        let (parts, body) = response.into_parts();
-                        collect_body(body)
-                            .map_err(From::from)
-                            .inspect_ok(move |buffer| {
-                                trace!("seq: {}, forward, bytes: {}", seq, String::from_utf8_lossy(&buffer))
-                            })
-                            .map_ok(|buffer| Response::from_parts(parts, Body::from(buffer)))
-                    })
-                })
-                .map_err(move |err| {
-                    error!("seq: {}, forward, error: {}", seq, err);
-                    err
-                })
-        })
+        Box::pin(run(Arc::clone(&self.config), self.seq, req))
     }
 }
 
-fn filter_allowed_request(buffer: Vec<u8>, allowed_rpcs: &BisectSet<String>, seq: u64) -> Result<Vec<u8>, Error> {
+fn filter_allowed_request(buffer: &[u8], allowed_rpcs: &BisectSet<String>, seq: u64) -> Result<(), Error> {
     let request = serde_json::from_slice::<serde_json::Value>(&buffer)?;
     let method = request.get("method").ok_or(Error::MethodIsNotDefined)?;
     let method = method.as_str().ok_or(Error::MethodIsNotString)?;
     debug!("seq: {}, method: {}", seq, method);
     if allowed_rpcs.contains(method) {
-        Ok(buffer)
+        Ok(())
     } else {
         info!("seq: {}, blocked", seq);
         Err(Error::NotAllowedMethod(method.to_string()))
     }
 }
 
-fn collect_body(body: Body) -> impl Future<Output = Result<Vec<u8>, hyper::Error>> {
-    body.try_fold(Vec::new(), |mut x, y| {
-        x.append(&mut y.to_vec());
-        future::ok(x)
-    })
+async fn collect_body(body: Body) -> Result<Vec<u8>, hyper::Error> {
+    body.map_ok(|bytes| bytes.to_vec()).try_concat().await
 }

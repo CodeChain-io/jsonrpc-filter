@@ -35,7 +35,6 @@ use std::iter::FromIterator;
 use std::net::{Ipv4Addr, SocketAddrV4};
 use std::sync::Arc;
 
-use futures::executor::block_on;
 use futures::TryFutureExt;
 use hyper::Server;
 
