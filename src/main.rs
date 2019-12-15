@@ -16,13 +16,8 @@
 
 #[macro_use]
 extern crate clap;
-extern crate futures;
-extern crate hyper;
 #[macro_use]
 extern crate log;
-extern crate pretty_env_logger;
-extern crate serde;
-extern crate serde_json;
 
 mod bisect_set;
 mod config;
