@@ -1,4 +1,4 @@
-// Copyright 2019 Kodebox, Inc.
+// Copyright 2019-2020 Kodebox, Inc.
 // This file is part of CodeChain.
 //
 // This program is free software: you can redistribute it and/or modify
@@ -24,20 +24,18 @@ mod config;
 mod error;
 mod filter;
 
-use std::fs::File;
-use std::io::{BufRead, BufReader};
-use std::iter::FromIterator;
-use std::net::{Ipv4Addr, SocketAddrV4};
-use std::sync::Arc;
-
-use futures::TryFutureExt;
-use hyper::Server;
-
 use self::bisect_set::BisectSet;
 use self::config::Config;
 use self::error::Error;
 use self::filter::Filter;
 use crate::config::ServiceMaker;
+use futures::TryFutureExt;
+use hyper::Server;
+use std::fs::File;
+use std::io::{BufRead, BufReader};
+use std::iter::FromIterator;
+use std::net::{Ipv4Addr, SocketAddrV4};
+use std::sync::Arc;
 
 #[tokio::main]
 async fn main() {

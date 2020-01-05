@@ -1,4 +1,4 @@
-// Copyright 2019 Kodebox, Inc.
+// Copyright 2019-2020 Kodebox, Inc.
 // This file is part of CodeChain.
 //
 // This program is free software: you can redistribute it and/or modify
@@ -18,11 +18,9 @@
 
 extern crate test;
 
-use std::collections::{BTreeSet, HashSet};
-
-use test::{black_box, Bencher};
-
 use jsonrpc_filter::bisect_set::BisectSet;
+use std::collections::{BTreeSet, HashSet};
+use test::{black_box, Bencher};
 
 static ALLOWED_LIST: [&str; 40] = [
     "chain_containsTransaction",

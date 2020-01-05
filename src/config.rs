@@ -1,4 +1,4 @@
-// Copyright 2019 Kodebox, Inc.
+// Copyright 2019-2020 Kodebox, Inc.
 // This file is part of CodeChain.
 //
 // This program is free software: you can redistribute it and/or modify
@@ -14,15 +14,13 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+use super::{Error, Filter};
+use crate::bisect_set::BisectSet;
+use futures::future;
+use hyper::service::Service;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
 use std::task::{Context, Poll};
-
-use futures::future;
-use hyper::service::Service;
-
-use super::{Error, Filter};
-use crate::bisect_set::BisectSet;
 
 pub struct Config {
     pub forward: hyper::Uri,

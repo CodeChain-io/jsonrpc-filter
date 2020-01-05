@@ -1,4 +1,4 @@
-// Copyright 2019 Kodebox, Inc.
+// Copyright 2019-2020 Kodebox, Inc.
 // This file is part of CodeChain.
 //
 // This program is free software: you can redistribute it and/or modify
@@ -14,21 +14,19 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use std::future::Future;
-use std::sync::Arc;
-use std::task::{Context, Poll};
-
+use super::Error;
+use crate::bisect_set::BisectSet;
+use crate::config::Config;
 use futures::TryStreamExt;
 use hyper::header::{
     HeaderValue, ACCESS_CONTROL_ALLOW_HEADERS, ACCESS_CONTROL_ALLOW_METHODS, ACCESS_CONTROL_ALLOW_ORIGIN,
 };
 use hyper::service::Service;
 use hyper::{Body, Client, Method, Request, Response, StatusCode};
-
-use super::Error;
-use crate::bisect_set::BisectSet;
-use crate::config::Config;
+use std::future::Future;
 use std::pin::Pin;
+use std::sync::Arc;
+use std::task::{Context, Poll};
 
 pub struct Filter {
     config: Arc<Config>,

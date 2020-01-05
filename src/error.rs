@@ -1,4 +1,4 @@
-// Copyright 2019 Kodebox, Inc.
+// Copyright 2019-2020 Kodebox, Inc.
 // This file is part of CodeChain.
 //
 // This program is free software: you can redistribute it and/or modify
@@ -14,12 +14,11 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use std::error::Error as StdError;
-use std::fmt::{Display, Formatter, Result as FmtResult};
-
 use hyper::http::Error as HyperHttpError;
 use hyper::Error as HyperError;
 use serde_json::Error as SerdeError;
+use std::error::Error as StdError;
+use std::fmt::{Display, Formatter, Result as FmtResult};
 
 #[derive(Debug)]
 pub enum Error {
