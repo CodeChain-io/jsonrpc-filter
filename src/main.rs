@@ -14,11 +14,6 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-#[macro_use]
-extern crate clap;
-#[macro_use]
-extern crate log;
-
 mod bisect_set;
 mod config;
 mod error;
@@ -29,8 +24,10 @@ use self::config::Config;
 use self::error::Error;
 use self::filter::Filter;
 use crate::config::ServiceMaker;
+use clap::{load_yaml, value_t_or_exit};
 use futures::TryFutureExt;
 use hyper::Server;
+use log::info;
 use std::fs::File;
 use std::io::{BufRead, BufReader};
 use std::iter::FromIterator;

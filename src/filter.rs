@@ -23,6 +23,7 @@ use hyper::header::{
 };
 use hyper::service::Service;
 use hyper::{Body, Client, Method, Request, Response, StatusCode};
+use log::{debug, info, trace};
 use std::future::Future;
 use std::pin::Pin;
 use std::sync::Arc;
