@@ -89,7 +89,7 @@ mod first_item {
     fn with_vec_iter(b: &mut Bencher) {
         let list: Vec<String> = ALLOWED_LIST.iter().map(ToString::to_string).collect();
 
-        let method = ALLOWED_LIST.first().unwrap().to_string();
+        let method = (*ALLOWED_LIST.first().unwrap()).to_string();
 
         b.iter(|| {
             black_box(contains_linear(&list, &method));
@@ -100,7 +100,7 @@ mod first_item {
     fn with_vec_bisect(b: &mut Bencher) {
         let list = BisectSet::from_iter(ALLOWED_LIST.iter().map(ToString::to_string));
 
-        let method = ALLOWED_LIST.first().unwrap().to_string();
+        let method = (*ALLOWED_LIST.first().unwrap()).to_string();
 
         b.iter(|| {
             black_box(contains_bisect(&list, &method));
@@ -111,7 +111,7 @@ mod first_item {
     fn with_hash_set(b: &mut Bencher) {
         let list: HashSet<String> = ALLOWED_LIST.iter().map(ToString::to_string).collect();
 
-        let method = ALLOWED_LIST.first().unwrap().to_string();
+        let method = (*ALLOWED_LIST.first().unwrap()).to_string();
 
         b.iter(|| {
             black_box(contains_hash_set(&list, &method));
@@ -122,7 +122,7 @@ mod first_item {
     fn with_btree_set(b: &mut Bencher) {
         let list: BTreeSet<String> = ALLOWED_LIST.iter().map(ToString::to_string).collect();
 
-        let method = ALLOWED_LIST.first().unwrap().to_string();
+        let method = (*ALLOWED_LIST.first().unwrap()).to_string();
 
         b.iter(|| {
             black_box(contains_btree_set(&list, &method));
@@ -138,7 +138,7 @@ mod second_item {
     fn with_vec_iter(b: &mut Bencher) {
         let list: Vec<String> = ALLOWED_LIST.iter().map(ToString::to_string).collect();
 
-        let method = ALLOWED_LIST.get(1).unwrap().to_string();
+        let method = (*ALLOWED_LIST.get(1).unwrap()).to_string();
 
         b.iter(|| {
             black_box(contains_linear(&list, &method));
@@ -149,7 +149,7 @@ mod second_item {
     fn with_vec_bisect(b: &mut Bencher) {
         let list = BisectSet::from_iter(ALLOWED_LIST.iter().map(ToString::to_string));
 
-        let method = ALLOWED_LIST.get(1).unwrap().to_string();
+        let method = (*ALLOWED_LIST.get(1).unwrap()).to_string();
 
         b.iter(|| {
             black_box(contains_bisect(&list, &method));
@@ -160,7 +160,7 @@ mod second_item {
     fn with_hash_set(b: &mut Bencher) {
         let list: HashSet<String> = ALLOWED_LIST.iter().map(ToString::to_string).collect();
 
-        let method = ALLOWED_LIST.get(1).unwrap().to_string();
+        let method = (*ALLOWED_LIST.get(1).unwrap()).to_string();
 
         b.iter(|| {
             black_box(contains_hash_set(&list, &method));
@@ -171,7 +171,7 @@ mod second_item {
     fn with_btree_set(b: &mut Bencher) {
         let list: BTreeSet<String> = ALLOWED_LIST.iter().map(ToString::to_string).collect();
 
-        let method = ALLOWED_LIST.get(1).unwrap().to_string();
+        let method = (*ALLOWED_LIST.get(1).unwrap()).to_string();
 
         b.iter(|| {
             black_box(contains_btree_set(&list, &method));
@@ -187,7 +187,7 @@ mod third_item {
     fn with_vec_iter(b: &mut Bencher) {
         let list: Vec<String> = ALLOWED_LIST.iter().map(ToString::to_string).collect();
 
-        let method = ALLOWED_LIST.get(2).unwrap().to_string();
+        let method = (*ALLOWED_LIST.get(2).unwrap()).to_string();
 
         b.iter(|| {
             black_box(contains_linear(&list, &method));
@@ -198,7 +198,7 @@ mod third_item {
     fn with_vec_bisect(b: &mut Bencher) {
         let list = BisectSet::from_iter(ALLOWED_LIST.iter().map(ToString::to_string));
 
-        let method = ALLOWED_LIST.get(2).unwrap().to_string();
+        let method = (*ALLOWED_LIST.get(2).unwrap()).to_string();
 
         b.iter(|| {
             black_box(contains_bisect(&list, &method));
@@ -209,7 +209,7 @@ mod third_item {
     fn with_hash_set(b: &mut Bencher) {
         let list: HashSet<String> = ALLOWED_LIST.iter().map(ToString::to_string).collect();
 
-        let method = ALLOWED_LIST.get(2).unwrap().to_string();
+        let method = (*ALLOWED_LIST.get(2).unwrap()).to_string();
 
         b.iter(|| {
             black_box(contains_hash_set(&list, &method));
@@ -220,7 +220,7 @@ mod third_item {
     fn with_btree_set(b: &mut Bencher) {
         let list: BTreeSet<String> = ALLOWED_LIST.iter().map(ToString::to_string).collect();
 
-        let method = ALLOWED_LIST.get(2).unwrap().to_string();
+        let method = (*ALLOWED_LIST.get(2).unwrap()).to_string();
 
         b.iter(|| {
             black_box(contains_btree_set(&list, &method));
@@ -235,7 +235,7 @@ mod q1_item {
     #[bench]
     fn with_vec_iter(b: &mut Bencher) {
         let list: Vec<String> = ALLOWED_LIST.iter().map(ToString::to_string).collect();
-        let method = ALLOWED_LIST.get(ALLOWED_LIST.len() / 4).unwrap().to_string();
+        let method = (*ALLOWED_LIST.get(ALLOWED_LIST.len() / 4).unwrap()).to_string();
 
         b.iter(|| {
             black_box(contains_linear(&list, &method));
@@ -246,7 +246,7 @@ mod q1_item {
     fn with_vec_bisect(b: &mut Bencher) {
         let list = BisectSet::from_iter(ALLOWED_LIST.iter().map(ToString::to_string));
 
-        let method = ALLOWED_LIST.get(ALLOWED_LIST.len() / 4).unwrap().to_string();
+        let method = (*ALLOWED_LIST.get(ALLOWED_LIST.len() / 4).unwrap()).to_string();
 
         b.iter(|| {
             black_box(contains_bisect(&list, &method));
@@ -256,7 +256,7 @@ mod q1_item {
     #[bench]
     fn with_hash_set(b: &mut Bencher) {
         let list: HashSet<String> = ALLOWED_LIST.iter().map(ToString::to_string).collect();
-        let method = ALLOWED_LIST.get(ALLOWED_LIST.len() / 4).unwrap().to_string();
+        let method = (*ALLOWED_LIST.get(ALLOWED_LIST.len() / 4).unwrap()).to_string();
 
         b.iter(|| {
             black_box(contains_hash_set(&list, &method));
@@ -266,7 +266,7 @@ mod q1_item {
     #[bench]
     fn with_btree_set(b: &mut Bencher) {
         let list: BTreeSet<String> = ALLOWED_LIST.iter().map(ToString::to_string).collect();
-        let method = ALLOWED_LIST.get(ALLOWED_LIST.len() / 4).unwrap().to_string();
+        let method = (*ALLOWED_LIST.get(ALLOWED_LIST.len() / 4).unwrap()).to_string();
 
         b.iter(|| {
             black_box(contains_btree_set(&list, &method));
@@ -281,7 +281,7 @@ mod middle_item {
     #[bench]
     fn with_vec_iter(b: &mut Bencher) {
         let list: Vec<String> = ALLOWED_LIST.iter().map(ToString::to_string).collect();
-        let method = ALLOWED_LIST.get(ALLOWED_LIST.len() / 2).unwrap().to_string();
+        let method = (*ALLOWED_LIST.get(ALLOWED_LIST.len() / 2).unwrap()).to_string();
 
         b.iter(|| {
             black_box(contains_linear(&list, &method));
@@ -292,7 +292,7 @@ mod middle_item {
     fn with_vec_bisect(b: &mut Bencher) {
         let list = BisectSet::from_iter(ALLOWED_LIST.iter().map(ToString::to_string));
 
-        let method = ALLOWED_LIST.get(ALLOWED_LIST.len() / 2).unwrap().to_string();
+        let method = (*ALLOWED_LIST.get(ALLOWED_LIST.len() / 2).unwrap()).to_string();
 
         b.iter(|| {
             black_box(contains_bisect(&list, &method));
@@ -302,7 +302,7 @@ mod middle_item {
     #[bench]
     fn with_hash_set(b: &mut Bencher) {
         let list: HashSet<String> = ALLOWED_LIST.iter().map(ToString::to_string).collect();
-        let method = ALLOWED_LIST.get(ALLOWED_LIST.len() / 2).unwrap().to_string();
+        let method = (*ALLOWED_LIST.get(ALLOWED_LIST.len() / 2).unwrap()).to_string();
 
         b.iter(|| {
             black_box(contains_hash_set(&list, &method));
@@ -312,7 +312,7 @@ mod middle_item {
     #[bench]
     fn with_btree_set(b: &mut Bencher) {
         let list: BTreeSet<String> = ALLOWED_LIST.iter().map(ToString::to_string).collect();
-        let method = ALLOWED_LIST.get(ALLOWED_LIST.len() / 2).unwrap().to_string();
+        let method = (*ALLOWED_LIST.get(ALLOWED_LIST.len() / 2).unwrap()).to_string();
 
         b.iter(|| {
             black_box(contains_btree_set(&list, &method));
@@ -327,7 +327,7 @@ mod q3_item {
     #[bench]
     fn with_vec_iter(b: &mut Bencher) {
         let vec: Vec<String> = ALLOWED_LIST.iter().map(ToString::to_string).collect();
-        let method = ALLOWED_LIST.get(3 * ALLOWED_LIST.len() / 4).unwrap().to_string();
+        let method = (*ALLOWED_LIST.get(3 * ALLOWED_LIST.len() / 4).unwrap()).to_string();
 
         b.iter(|| {
             black_box(contains_linear(&vec, &method));
@@ -338,7 +338,7 @@ mod q3_item {
     fn with_vec_bisect(b: &mut Bencher) {
         let list = BisectSet::from_iter(ALLOWED_LIST.iter().map(ToString::to_string));
 
-        let method = ALLOWED_LIST.get(3 * ALLOWED_LIST.len() / 4).unwrap().to_string();
+        let method = (*ALLOWED_LIST.get(3 * ALLOWED_LIST.len() / 4).unwrap()).to_string();
 
         b.iter(|| {
             black_box(contains_bisect(&list, &method));
@@ -348,7 +348,7 @@ mod q3_item {
     #[bench]
     fn with_hash_set(b: &mut Bencher) {
         let vec: HashSet<String> = ALLOWED_LIST.iter().map(ToString::to_string).collect();
-        let method = ALLOWED_LIST.get(3 * ALLOWED_LIST.len() / 4).unwrap().to_string();
+        let method = (*ALLOWED_LIST.get(3 * ALLOWED_LIST.len() / 4).unwrap()).to_string();
 
         b.iter(|| {
             black_box(contains_hash_set(&vec, &method));
@@ -358,7 +358,7 @@ mod q3_item {
     #[bench]
     fn with_btree_set(b: &mut Bencher) {
         let vec: BTreeSet<String> = ALLOWED_LIST.iter().map(ToString::to_string).collect();
-        let method = ALLOWED_LIST.get(3 * ALLOWED_LIST.len() / 4).unwrap().to_string();
+        let method = (*ALLOWED_LIST.get(3 * ALLOWED_LIST.len() / 4).unwrap()).to_string();
 
         b.iter(|| {
             black_box(contains_btree_set(&vec, &method));
@@ -373,7 +373,7 @@ mod last_item {
     #[bench]
     fn with_vec_iter(b: &mut Bencher) {
         let vec: Vec<String> = ALLOWED_LIST.iter().map(ToString::to_string).collect();
-        let method = ALLOWED_LIST.last().unwrap().to_string();
+        let method = (*ALLOWED_LIST.last().unwrap()).to_string();
 
         b.iter(|| {
             black_box(contains_linear(&vec, &method));
@@ -384,7 +384,7 @@ mod last_item {
     fn with_vec_bisect(b: &mut Bencher) {
         let list = BisectSet::from_iter(ALLOWED_LIST.iter().map(ToString::to_string));
 
-        let method = ALLOWED_LIST.last().unwrap().to_string();
+        let method = (*ALLOWED_LIST.last().unwrap()).to_string();
 
         b.iter(|| {
             black_box(contains_bisect(&list, &method));
@@ -394,7 +394,7 @@ mod last_item {
     #[bench]
     fn with_hash_set(b: &mut Bencher) {
         let vec: HashSet<String> = ALLOWED_LIST.iter().map(ToString::to_string).collect();
-        let method = ALLOWED_LIST.last().unwrap().to_string();
+        let method = (*ALLOWED_LIST.last().unwrap()).to_string();
 
         b.iter(|| {
             black_box(contains_hash_set(&vec, &method));
@@ -404,7 +404,7 @@ mod last_item {
     #[bench]
     fn with_btree_set(b: &mut Bencher) {
         let vec: BTreeSet<String> = ALLOWED_LIST.iter().map(ToString::to_string).collect();
-        let method = ALLOWED_LIST.last().unwrap().to_string();
+        let method = (*ALLOWED_LIST.last().unwrap()).to_string();
 
         b.iter(|| {
             black_box(contains_btree_set(&vec, &method));
