@@ -34,7 +34,7 @@ function req {
   curl -s -H "Content-Type: application/json" -d "$1" localhost:$FILTER_PORT
 }
 
-function testcase {
+function expect_success {
   local METHOD=$1
   local EXPECTED=$2
   local RESULT
@@ -48,25 +48,40 @@ function testcase {
   fi
 }
 
+function expect_failure {
+  local METHOD=$1
+  local RESULT
+  echo "running" "$METHOD"
+  set +e
+  RESULT=$($METHOD)
+  if [ -z $RESULT ]
+  then
+    echo "success"
+  else
+    exit 255
+  fi
+  set -e
+}
+
 sleep 1
 
 function method_ping {
   req '{"jsonrpc":"2.0","id":1,"method": "ping","params":[]}'
 }
-testcase method_ping '{"jsonrpc":"2.0","result":"pong","id":1}'
+expect_success method_ping '{"jsonrpc":"2.0","result":"pong","id":1}'
 
 function method_add {
   req '{"jsonrpc": "2.0","id":1,"method":"add","params":[1,2,3,4,5]}'
 }
-testcase method_add '{"jsonrpc":"2.0","result":15.0,"id":1}'
+expect_success method_add '{"jsonrpc":"2.0","result":15.0,"id":1}'
 
 function method_echo {
   req '{"jsonrpc":"2.0","id":1,"method":"echo","params":["hello, ","world!"]}'
 }
-testcase method_echo '{"jsonrpc":"2.0","result":["hello, ","world!"],"id":1}'
+expect_success method_echo '{"jsonrpc":"2.0","result":["hello, ","world!"],"id":1}'
 
 
 function method_concat {
   req '{"jsonrpc":"2.0","id":1,"method":"concat","params":["hello, ","world!"]}'
 }
-testcase method_concat '{"jsonrpc":"2.0","error":{"code":-32601,"message":"Method not found"},"id":1}'
+expect_failure method_concat
