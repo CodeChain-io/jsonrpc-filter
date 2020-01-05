@@ -51,7 +51,7 @@ impl From<HyperHttpError> for Error {
 }
 
 impl Display for Error {
-    fn fmt(&self, f: &mut Formatter) -> FmtResult {
+    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
         match self {
             Error::Hyper(err) => write!(f, "{}", err),
             Error::HyperHttp(err) => write!(f, "{}", err),
